@@ -1,0 +1,219 @@
+// SPDX-FileCopyrightText: 2026 Juan Medina
+// SPDX-License-Identifier: MIT
+
+package com.juanmedina.junomochi;
+
+import io.github.jabrena.juno.hardware.device.sd.SdCard;
+
+/**
+ * Manages the developer character's animations, state machine, movement, and speech bubbles.
+ */
+public final class CharacterActor {
+
+    private static final int STATE_CODING = 0;
+    private static final int STATE_WALK_LEFT = 1;
+    private static final int STATE_TIRED = 2;
+    private static final int STATE_BACK_MSG = 3;
+    private static final int STATE_WALK_RIGHT = 4;
+
+    private static final int WALK_FRAME_MS = 180;
+    private static final int CODING_FRAME_MS = 300;
+    private static final int INITIAL_CODING_MS = 10000;
+    private static final int REPEAT_CODING_MS = 20000;
+    private static final int TIRED_MSG_MS = 2500;
+    private static final int BACK_MSG_MS = 1800;
+
+    private static final int STEP_PX = 4 * RoomScene.SCALE;
+    private static final int CHAIR_OFFSET_Y = -3;
+
+    private final WaveshareTftShield tft;
+    private final Palette palette;
+    private final int floorColor;
+    private final TileBuffer buffer;
+    private final SpeechBubble bubble;
+
+    private final Sprite chair;
+    private final Sprite downStand;
+    private final SpriteAnim leftAnim;
+    private final SpriteAnim rightAnim;
+    private final SpriteAnim codingAnim;
+
+    private int state;
+    private int codingDurationMs;
+    private int charX;
+    private int stateStart;
+    private SpriteAnim activeAnim;
+
+    private CharacterActor(
+            WaveshareTftShield tft,
+            Palette palette,
+            Sprite chair,
+            Sprite downStand,
+            SpriteAnim leftAnim,
+            SpriteAnim rightAnim,
+            SpriteAnim codingAnim) {
+        this.tft = tft;
+        this.palette = palette;
+        this.floorColor = palette.getColor(RoomScene.FLOOR_PALETTE_INDEX);
+        this.buffer = new TileBuffer(16, 32);
+        this.bubble = new SpeechBubble(60, 74, 112, 34, RoomScene.LEFT_BOUND_X + 20);
+        this.chair = chair;
+        this.downStand = downStand;
+        this.leftAnim = leftAnim;
+        this.rightAnim = rightAnim;
+        this.codingAnim = codingAnim;
+        this.state = STATE_CODING;
+        this.codingDurationMs = INITIAL_CODING_MS;
+        this.charX = RoomScene.CHAIR_X;
+        this.activeAnim = codingAnim;
+    }
+
+    /**
+     * Loads all character and chair sprites from the SD card and constructs the actor.
+     */
+    public static CharacterActor load(WaveshareTftShield tft, SdCard sd, Palette palette) {
+        var chair = Sprite.load(sd.open("chair_side.bin"), 16, 32);
+        var downStand = Sprite.load(sd.open("walk_down_stand.bin"), 16, 32);
+
+        var leftStand = Sprite.load(sd.open("walk_left_stand.bin"), 16, 32);
+        var leftStepLeft = Sprite.load(sd.open("walk_left_step_left.bin"), 16, 32);
+        var leftStepRight = Sprite.load(sd.open("walk_left_step_right.bin"), 16, 32);
+
+        var rightStand = Sprite.load(sd.open("walk_right_stand.bin"), 16, 32);
+        var rightStepLeft = Sprite.load(sd.open("walk_right_step_left.bin"), 16, 32);
+        var rightStepRight = Sprite.load(sd.open("walk_right_step_right.bin"), 16, 32);
+
+        var typing0 = Sprite.load(sd.open("typing_right_frame0.bin"), 16, 32);
+        var typing1 = Sprite.load(sd.open("typing_right_frame1.bin"), 16, 32);
+
+        if (chair == null || downStand == null || leftStand == null
+                || rightStand == null || typing0 == null || typing1 == null) {
+            return null;
+        }
+
+        var leftAnim = new SpriteAnim(
+                new Sprite[] { leftStand, leftStepLeft, leftStand, leftStepRight }, WALK_FRAME_MS);
+        var rightAnim = new SpriteAnim(
+                new Sprite[] { rightStand, rightStepLeft, rightStand, rightStepRight }, WALK_FRAME_MS);
+        var codingAnim = new SpriteAnim(
+                new Sprite[] { typing0, typing1 }, CODING_FRAME_MS);
+
+        return new CharacterActor(tft, palette, chair, downStand, leftAnim, rightAnim, codingAnim);
+    }
+
+    /**
+     * Draws the initial seated state and starts the state timer.
+     */
+    public void start(int nowMs) {
+        this.stateStart = nowMs;
+        drawAtChair(activeAnim.getCurrentFrame(), CHAIR_OFFSET_Y);
+    }
+
+    /**
+     * Advances the character state machine on each tick of the main loop.
+     */
+    public void update(int now, boolean touchedEdge) {
+        switch (state) {
+            case STATE_CODING -> updateCoding(now);
+            case STATE_WALK_LEFT -> updateWalkLeft(now);
+            case STATE_TIRED -> updateTired(now, touchedEdge);
+            case STATE_BACK_MSG -> updateBackMsg(now);
+            case STATE_WALK_RIGHT -> updateWalkRight(now);
+            default -> {
+            }
+        }
+    }
+
+    private void updateCoding(int now) {
+        if (now - stateStart >= codingDurationMs) {
+            state = STATE_WALK_LEFT;
+            activeAnim = leftAnim;
+        } else if (activeAnim.update(now)) {
+            drawAtChair(activeAnim.getCurrentFrame(), CHAIR_OFFSET_Y);
+        }
+    }
+
+    private void updateWalkLeft(int now) {
+        if (!activeAnim.update(now)) {
+            return;
+        }
+        var oldX = charX;
+        charX -= STEP_PX;
+        var frame = activeAnim.getCurrentFrame();
+
+        if (oldX > RoomScene.CHAIR_X - RoomScene.TILE_W) {
+            // Restore uncovered portion of the chair seamlessly
+            buffer.clear(RoomScene.FLOOR_PALETTE_INDEX);
+            buffer.composite(chair, 0);
+            buffer.composite(frame, (charX - RoomScene.CHAIR_X) / RoomScene.SCALE);
+            buffer.blit(tft, RoomScene.CHAIR_X, RoomScene.CHAR_Y, RoomScene.SCALE, palette);
+        } else {
+            tft.fillRect(charX + RoomScene.TILE_W, RoomScene.CHAR_Y, STEP_PX, RoomScene.CHAR_H, floorColor);
+        }
+
+        if (charX <= RoomScene.LEFT_BOUND_X) {
+            charX = RoomScene.LEFT_BOUND_X;
+            state = STATE_TIRED;
+            stateStart = now;
+            drawAtCurrentPos(downStand, 0);
+            bubble.show(tft, "I'm tired", "of coding");
+        } else {
+            drawAtCurrentPos(frame, 0);
+        }
+    }
+
+    private void updateTired(int now, boolean touchedEdge) {
+        if (bubble.isVisible() && now - stateStart >= TIRED_MSG_MS) {
+            bubble.hide(tft, floorColor);
+        }
+        if (touchedEdge) {
+            state = STATE_BACK_MSG;
+            stateStart = now;
+            bubble.show(tft, "Ok, ok back", "to coding!");
+        }
+    }
+
+    private void updateBackMsg(int now) {
+        if (now - stateStart >= BACK_MSG_MS) {
+            bubble.hide(tft, floorColor);
+            state = STATE_WALK_RIGHT;
+            activeAnim = rightAnim;
+        }
+    }
+
+    private void updateWalkRight(int now) {
+        if (!activeAnim.update(now)) {
+            return;
+        }
+        var oldX = charX;
+        charX += STEP_PX;
+
+        tft.fillRect(oldX, RoomScene.CHAR_Y, STEP_PX, RoomScene.CHAR_H, floorColor);
+
+        if (charX >= RoomScene.CHAIR_X) {
+            charX = RoomScene.CHAIR_X;
+            state = STATE_CODING;
+            codingDurationMs = REPEAT_CODING_MS;
+            activeAnim = codingAnim;
+            stateStart = now;
+            drawAtChair(activeAnim.getCurrentFrame(), CHAIR_OFFSET_Y);
+        } else {
+            drawAtCurrentPos(activeAnim.getCurrentFrame(), 0);
+        }
+    }
+
+    private void drawAtChair(Sprite frame, int offsetY) {
+        buffer.clear(RoomScene.FLOOR_PALETTE_INDEX);
+        buffer.composite(chair, 0);
+        buffer.composite(frame, 0, offsetY);
+        buffer.blit(tft, RoomScene.CHAIR_X, RoomScene.CHAR_Y, RoomScene.SCALE, palette);
+    }
+
+    private void drawAtCurrentPos(Sprite frame, int offsetY) {
+        buffer.clear(RoomScene.FLOOR_PALETTE_INDEX);
+        buffer.composite(chair, (RoomScene.CHAIR_X - charX) / RoomScene.SCALE);
+        buffer.composite(frame, 0, offsetY);
+        buffer.blit(tft, charX, RoomScene.CHAR_Y, RoomScene.SCALE, palette);
+    }
+}
+

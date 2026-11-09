@@ -48,17 +48,17 @@ public final class SpriteAnim {
     }
 
     public int getWidth() {
-        Sprite frame = getCurrentFrame();
+        var frame = getCurrentFrame();
         return frame != null ? frame.getWidth() : 0;
     }
 
     public int getHeight() {
-        Sprite frame = getCurrentFrame();
+        var frame = getCurrentFrame();
         return frame != null ? frame.getHeight() : 0;
     }
 
     public void draw(WaveshareTftShield display, int x, int y, int scale, boolean flipX, Palette palette) {
-        Sprite frame = getCurrentFrame();
+        var frame = getCurrentFrame();
         if (frame != null && display != null) {
             frame.draw(display, x, y, scale, flipX, palette);
         }

@@ -3,9 +3,9 @@ SPDX-FileCopyrightText: 2026 Juan Medina
 SPDX-License-Identifier: MIT
 -->
 
-# Junomochi
+# JUnomochi
 
-Arduino UNO R4 WiFi project using ahead-of-time (AOT) Java compilation with [JUNo](https://github.com/jabrena/juno).
+Arduino UNO R4 WiFi project using ahead-of-time (AOT) Java compilation with [JUno](https://github.com/jabrena/juno).
 
 ## Hardware Setup
 
@@ -21,7 +21,7 @@ Arduino UNO R4 WiFi project using ahead-of-time (AOT) Java compilation with [JUN
 
 ## Architecture & Features
 
-The project includes a lightweight, zero-allocation driver implementing Juno's standard `Display` interface:
+The project includes a lightweight, zero-allocation driver implementing JUno's standard `Display` interface:
 
 - [`WaveshareTftShield.java`](src/main/java/com/juanmedina/junomochi/WaveshareTftShield.java):
   - Implements `io.github.jabrena.juno.hardware.display.Display`

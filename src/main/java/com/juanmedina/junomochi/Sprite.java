@@ -42,11 +42,11 @@ public final class Sprite {
         if (in == null) {
             return false;
         }
-        int capacity = data.length;
-        int count = 0;
+        var capacity = data.length;
+        var count = 0;
         try {
             while (count < capacity) {
-                int n = in.read(data, count, capacity - count);
+                var n = in.read(data, count, capacity - count);
                 if (n <= 0) {
                     break;
                 }
@@ -88,11 +88,11 @@ public final class Sprite {
         if (in == null) {
             return null;
         }
-        byte[] buffer = new byte[MAX_DATA_SIZE];
-        int count = 0;
+        var buffer = new byte[MAX_DATA_SIZE];
+        var count = 0;
         try {
             while (count < MAX_DATA_SIZE) {
-                int n = in.read(buffer, count, MAX_DATA_SIZE - count);
+                var n = in.read(buffer, count, MAX_DATA_SIZE - count);
                 if (n <= 0) {
                     break;
                 }

@@ -36,12 +36,12 @@ public final class TileBuffer {
      * Fills the buffer with a background color index.
      */
     public void clear(int colorIndex) {
-        byte b = (byte) colorIndex;
-        int total = width * height;
+        var b = (byte) colorIndex;
+        var total = width * height;
         if (total > BUFFER_SIZE) {
             total = BUFFER_SIZE;
         }
-        for (int i = 0; i < total; i++) {
+        for (var i = 0; i < total; i++) {
             pixels[i] = b;
         }
     }
@@ -55,28 +55,28 @@ public final class TileBuffer {
         if (sprite == null) {
             return;
         }
-        byte[] data = sprite.getData();
+        var data = sprite.getData();
         if (data == null || data.length < 2) {
             return;
         }
-        int numSpans = ((data[0] & 0xFF) << 8) | (data[1] & 0xFF);
-        int ptr = 2;
+        var numSpans = ((data[0] & 0xFF) << 8) | (data[1] & 0xFF);
+        var ptr = 2;
 
-        for (int i = 0; i < numSpans; i++) {
-            int row = (data[ptr++] & 0xFF) + offsetY;
-            int col = data[ptr++] & 0xFF;
-            int flagLen = data[ptr++] & 0xFF;
-            boolean isRepeat = (flagLen & 0x80) != 0;
-            int spanLen = flagLen & 0x7F;
+        for (var i = 0; i < numSpans; i++) {
+            var row = (data[ptr++] & 0xFF) + offsetY;
+            var col = data[ptr++] & 0xFF;
+            var flagLen = data[ptr++] & 0xFF;
+            var isRepeat = (flagLen & 0x80) != 0;
+            var spanLen = flagLen & 0x7F;
 
-            int drawCol = (flipX ? (width - col - spanLen) : col) + offsetX;
-            int rowOffset = row * width;
+            var drawCol = (flipX ? (width - col - spanLen) : col) + offsetX;
+            var rowOffset = row * width;
 
             if (isRepeat) {
-                byte colorIdx = data[ptr++];
+                var colorIdx = data[ptr++];
                 if (row >= 0 && row < height) {
-                    for (int c = 0; c < spanLen; c++) {
-                        int dstCol = drawCol + c;
+                    for (var c = 0; c < spanLen; c++) {
+                        var dstCol = drawCol + c;
                         if (dstCol >= 0 && dstCol < width) {
                             pixels[rowOffset + dstCol] = colorIdx;
                         }
@@ -84,10 +84,10 @@ public final class TileBuffer {
                 }
             } else {
                 if (row >= 0 && row < height) {
-                    for (int c = 0; c < spanLen; c++) {
-                        int dstCol = drawCol + c;
+                    for (var c = 0; c < spanLen; c++) {
+                        var dstCol = drawCol + c;
                         if (dstCol >= 0 && dstCol < width) {
-                            int srcCol = flipX ? (spanLen - 1 - c) : c;
+                            var srcCol = flipX ? (spanLen - 1 - c) : c;
                             pixels[rowOffset + dstCol] = data[ptr + srcCol];
                         }
                     }

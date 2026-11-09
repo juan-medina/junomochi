@@ -27,11 +27,11 @@ public final class Palette {
         if (in == null) {
             return new Palette(new int[MAX_COLORS], 0);
         }
-        byte[] buf = new byte[128];
-        int count = 0;
+        var buf = new byte[128];
+        var count = 0;
         try {
             while (count < 128) {
-                int n = in.read(buf, count, 128 - count);
+                var n = in.read(buf, count, 128 - count);
                 if (n <= 0) {
                     break;
                 }
@@ -41,11 +41,11 @@ public final class Palette {
         } catch (Exception ignored) {
         }
 
-        int numColors = count / 2;
-        int[] paletteColors = new int[MAX_COLORS];
-        for (int i = 0; i < numColors; i++) {
-            int hi = buf[i * 2] & 0xFF;
-            int lo = buf[i * 2 + 1] & 0xFF;
+        var numColors = count / 2;
+        var paletteColors = new int[MAX_COLORS];
+        for (var i = 0; i < numColors; i++) {
+            var hi = buf[i * 2] & 0xFF;
+            var lo = buf[i * 2 + 1] & 0xFF;
             paletteColors[i] = (hi << 8) | lo;
         }
         return new Palette(paletteColors, numColors);
