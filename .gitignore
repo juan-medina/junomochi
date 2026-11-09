@@ -1,0 +1,25 @@
+# SPDX-FileCopyrightText: 2026 Juan Medina
+# SPDX-License-Identifier: MIT
+
+# Build output
+target/
+build/
+bin/
+*.class
+
+# Package manager & IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+*.swp
+*.swo
+*~
+
+# Logs & temp
+*.log
+.env
+.DS_Store
+Thumbs.db

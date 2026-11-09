@@ -1,0 +1,56 @@
+<!--
+SPDX-FileCopyrightText: 2026 Juan Medina
+SPDX-License-Identifier: MIT
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.juanmedina</groupId>
+    <artifactId>junomichi</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <name>Junomichi</name>
+    <description>Tamagotchi-like virtual pet for Arduino UNO R4 WiFi using JUno</description>
+
+    <properties>
+        <maven.compiler.release>27</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <juno.version>0.1.0-SNAPSHOT</juno.version>
+        <juno.board>arduino-uno-r4-wifi</juno.board>
+        <juno.main>com.juanmedina.junomichi.App</juno.main>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.github.jabrena</groupId>
+            <artifactId>juno-api</artifactId>
+            <version>${juno.version}</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <release>${maven.compiler.release}</release>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>io.github.jabrena</groupId>
+                <artifactId>juno-maven-plugin</artifactId>
+                <version>${juno.version}</version>
+                <configuration>
+                    <board>${juno.board}</board>
+                    <mainClass>${juno.main}</mainClass>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
