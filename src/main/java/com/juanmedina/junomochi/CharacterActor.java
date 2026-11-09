@@ -3,8 +3,6 @@
 
 package com.juanmedina.junomochi;
 
-import io.github.jabrena.juno.hardware.device.sd.SdCard;
-
 /**
  * Manages the developer character's animations, state machine, movement, and speech bubbles.
  */
@@ -84,27 +82,22 @@ public final class CharacterActor {
     }
 
     /**
-     * Loads all character and chair sprites from the SD card and constructs the actor.
+     * Creates the character actor backed by embedded Flash sprite assets.
      */
-    public static CharacterActor load(WaveshareTftShield tft, SdCard sd, Palette palette) {
-        var chair = Sprite.load(sd.open("chair_side.bin"), 16, 32);
-        var downStand = Sprite.load(sd.open("walk_down_stand.bin"), 16, 32);
+    public static CharacterActor create(WaveshareTftShield tft, Palette palette) {
+        var chair = new Sprite(16, 32, SpriteAssets.CHAIR_SIDE);
+        var downStand = new Sprite(16, 32, SpriteAssets.WALK_DOWN_STAND);
 
-        var leftStand = Sprite.load(sd.open("walk_left_stand.bin"), 16, 32);
-        var leftStepLeft = Sprite.load(sd.open("walk_left_step_left.bin"), 16, 32);
-        var leftStepRight = Sprite.load(sd.open("walk_left_step_right.bin"), 16, 32);
+        var leftStand = new Sprite(16, 32, SpriteAssets.WALK_LEFT_STAND);
+        var leftStepLeft = new Sprite(16, 32, SpriteAssets.WALK_LEFT_STEP_LEFT);
+        var leftStepRight = new Sprite(16, 32, SpriteAssets.WALK_LEFT_STEP_RIGHT);
 
-        var rightStand = Sprite.load(sd.open("walk_right_stand.bin"), 16, 32);
-        var rightStepLeft = Sprite.load(sd.open("walk_right_step_left.bin"), 16, 32);
-        var rightStepRight = Sprite.load(sd.open("walk_right_step_right.bin"), 16, 32);
+        var rightStand = new Sprite(16, 32, SpriteAssets.WALK_RIGHT_STAND);
+        var rightStepLeft = new Sprite(16, 32, SpriteAssets.WALK_RIGHT_STEP_LEFT);
+        var rightStepRight = new Sprite(16, 32, SpriteAssets.WALK_RIGHT_STEP_RIGHT);
 
-        var typing0 = Sprite.load(sd.open("typing_right_frame0.bin"), 16, 32);
-        var typing1 = Sprite.load(sd.open("typing_right_frame1.bin"), 16, 32);
-
-        if (chair == null || downStand == null || leftStand == null
-                || rightStand == null || typing0 == null || typing1 == null) {
-            return null;
-        }
+        var typing0 = new Sprite(16, 32, SpriteAssets.TYPING_RIGHT_FRAME0);
+        var typing1 = new Sprite(16, 32, SpriteAssets.TYPING_RIGHT_FRAME1);
 
         var leftAnim = new SpriteAnim(
                 new Sprite[] { leftStand, leftStepLeft, leftStand, leftStepRight }, WALK_FRAME_MS);

@@ -4,11 +4,9 @@
 package com.juanmedina.junomochi;
 
 import io.github.jabrena.juno.hardware.ArduinoUno;
-import io.github.jabrena.juno.hardware.device.sd.SdCard;
 import io.github.jabrena.juno.hardware.display.Display;
 import io.github.jabrena.juno.hardware.gpio.DigitalOutput;
 import io.github.jabrena.juno.hardware.gpio.Gpio;
-import io.github.jabrena.juno.hardware.internal.NativeSdCard;
 import io.github.jabrena.juno.hardware.led.LedMatrixFontAscii;
 import io.github.jabrena.juno.hardware.spi.Spi;
 import io.github.jabrena.juno.util.Delay;
@@ -55,8 +53,6 @@ public final class WaveshareTftShield implements Display {
     private final DigitalOutput bl;
     private final DigitalOutput touchCs;
     private final int touchIrqPin;
-    private final int sdCsPin;
-    private SdCard sdCard;
 
     private int cursorX;
     private int cursorY;
@@ -95,9 +91,8 @@ public final class WaveshareTftShield implements Display {
         this.bl = DigitalOutput.of(blPin);
         this.touchCs = DigitalOutput.of(touchCsPin);
         this.touchIrqPin = touchIrqPin;
-        this.sdCsPin = sdCsPin;
 
-        DigitalOutput sdCs = DigitalOutput.of(sdCsPin);
+        var sdCs = DigitalOutput.of(sdCsPin);
 
         // Configure touch IRQ as input with pullup (active-low when touched)
         gpio.pinMode(touchIrqPin, gpio.getInputPullup());
@@ -150,14 +145,6 @@ public final class WaveshareTftShield implements Display {
     /** Returns whether the touch panel is currently being pressed (active-low IRQ). */
     public boolean isTouched() {
         return !gpio.digitalRead(touchIrqPin);
-    }
-
-    /** Returns the SdCard interface for the onboard micro-SD slot. */
-    public SdCard getSdCard() {
-        if (sdCard == null) {
-            sdCard = NativeSdCard.sdCard(sdCsPin);
-        }
-        return sdCard;
     }
 
     @Override
@@ -451,7 +438,7 @@ public final class WaveshareTftShield implements Display {
     }
 
     /**
-     * Draws a span-encoded sprite with pure transparency.
+     * Draws a span-encoded sprite from Flash (SpriteAssets.DATA) with pure transparency.
      * Only opaque pixel spans are transmitted, preserving the background.
      */
     public void drawSpanSprite(
@@ -460,25 +447,27 @@ public final class WaveshareTftShield implements Display {
             int spriteWidth,
             int scale,
             boolean flipX,
-            byte[] data,
             int offset,
-            int[] palette) {
-        int numSpans = ((data[offset] & 0xFF) << 8) | (data[offset + 1] & 0xFF);
-        int ptr = offset + 2;
+            Palette palette) {
+        if (palette == null) {
+            return;
+        }
+        var numSpans = ((SpriteAssets.DATA[offset] & 0xFF) << 8) | (SpriteAssets.DATA[offset + 1] & 0xFF);
+        var ptr = offset + 2;
 
-        for (int i = 0; i < numSpans; i++) {
-            int row = data[ptr++] & 0xFF;
-            int col = data[ptr++] & 0xFF;
-            int flagLen = data[ptr++] & 0xFF;
-            boolean isRepeat = (flagLen & 0x80) != 0;
-            int spanLen = flagLen & 0x7F;
+        for (var i = 0; i < numSpans; i++) {
+            var row = SpriteAssets.DATA[ptr++] & 0xFF;
+            var col = SpriteAssets.DATA[ptr++] & 0xFF;
+            var flagLen = SpriteAssets.DATA[ptr++] & 0xFF;
+            var isRepeat = (flagLen & 0x80) != 0;
+            var spanLen = flagLen & 0x7F;
 
-            int drawCol = flipX ? (spriteWidth - col - spanLen) : col;
-            int x0 = startX + drawCol * scale;
-            int y0 = startY + row * scale;
-            int spanWidthPx = spanLen * scale;
-            int x1 = x0 + spanWidthPx - 1;
-            int y1 = y0 + scale - 1;
+            var drawCol = flipX ? (spriteWidth - col - spanLen) : col;
+            var x0 = startX + drawCol * scale;
+            var y0 = startY + row * scale;
+            var spanWidthPx = spanLen * scale;
+            var x1 = x0 + spanWidthPx - 1;
+            var y1 = y0 + scale - 1;
 
             if (x0 < 0 || x1 >= WIDTH || y0 < 0 || y1 >= HEIGHT) {
                 if (isRepeat) {
@@ -493,26 +482,26 @@ public final class WaveshareTftShield implements Display {
             setWindow(x0, y0, x1, y1);
 
             if (isRepeat) {
-                int colorIdx = data[ptr++] & 0xFF;
-                int color = palette[colorIdx];
-                int hi = (color >> 8) & 0xFF;
-                int lo = color & 0xFF;
-                int totalPixels = spanWidthPx * scale;
-                for (int p = 0; p < totalPixels; p++) {
+                var colorIdx = SpriteAssets.DATA[ptr++] & 0xFF;
+                var color = palette.getColor(colorIdx);
+                var hi = (color >> 8) & 0xFF;
+                var lo = color & 0xFF;
+                var totalPixels = spanWidthPx * scale;
+                for (var p = 0; p < totalPixels; p++) {
                     spi.transfer(hi);
                     spi.transfer(lo);
                 }
             } else {
-                int dataStart = ptr;
+                var dataStart = ptr;
                 ptr += spanLen;
-                for (int sy = 0; sy < scale; sy++) {
-                    for (int c = 0; c < spanLen; c++) {
-                        int srcCol = flipX ? (spanLen - 1 - c) : c;
-                        int colorIdx = data[dataStart + srcCol] & 0xFF;
-                        int color = palette[colorIdx];
-                        int hi = (color >> 8) & 0xFF;
-                        int lo = color & 0xFF;
-                        for (int sx = 0; sx < scale; sx++) {
+                for (var sy = 0; sy < scale; sy++) {
+                    for (var c = 0; c < spanLen; c++) {
+                        var srcCol = flipX ? (spanLen - 1 - c) : c;
+                        var colorIdx = SpriteAssets.DATA[dataStart + srcCol] & 0xFF;
+                        var color = palette.getColor(colorIdx);
+                        var hi = (color >> 8) & 0xFF;
+                        var lo = color & 0xFF;
+                        for (var sx = 0; sx < scale; sx++) {
                             spi.transfer(hi);
                             spi.transfer(lo);
                         }
@@ -533,10 +522,10 @@ public final class WaveshareTftShield implements Display {
             int scale,
             boolean flipX,
             Palette palette) {
-        if (sprite == null || sprite.getData() == null || palette == null) {
+        if (sprite == null || palette == null) {
             return;
         }
-        drawSpanSprite(x, y, sprite.getWidth(), scale, flipX, sprite.getData(), 0, palette);
+        drawSpanSprite(x, y, sprite.getWidth(), scale, flipX, sprite.getOffset(), palette);
     }
 
     /**
@@ -549,24 +538,6 @@ public final class WaveshareTftShield implements Display {
             int scale,
             Palette palette) {
         drawSprite(sprite, x, y, scale, false, palette);
-    }
-
-    /**
-     * Draws a span-encoded sprite with pure transparency using a Palette.
-     */
-    public void drawSpanSprite(
-            int startX,
-            int startY,
-            int spriteWidth,
-            int scale,
-            boolean flipX,
-            byte[] data,
-            int offset,
-            Palette palette) {
-        if (palette == null) {
-            return;
-        }
-        drawSpanSprite(startX, startY, spriteWidth, scale, flipX, data, offset, palette.getColors());
     }
 
     /**
@@ -584,10 +555,10 @@ public final class WaveshareTftShield implements Display {
         if (buffer == null || palette == null) {
             return;
         }
-        int scaledW = bufferWidth * scale;
-        int scaledH = bufferHeight * scale;
-        int x1 = startX + scaledW - 1;
-        int y1 = startY + scaledH - 1;
+        var scaledW = bufferWidth * scale;
+        var scaledH = bufferHeight * scale;
+        var x1 = startX + scaledW - 1;
+        var y1 = startY + scaledH - 1;
 
         if (startX < 0 || x1 >= WIDTH || startY < 0 || y1 >= HEIGHT) {
             return;
@@ -595,17 +566,16 @@ public final class WaveshareTftShield implements Display {
 
         cs.low();
         setWindow(startX, startY, x1, y1);
-        int[] colors = palette.getColors();
 
-        for (int row = 0; row < bufferHeight; row++) {
-            int rowOffset = row * bufferWidth;
-            for (int sy = 0; sy < scale; sy++) {
-                for (int col = 0; col < bufferWidth; col++) {
-                    int colorIdx = buffer[rowOffset + col] & 0xFF;
-                    int color = (colorIdx >= 0 && colorIdx < colors.length) ? colors[colorIdx] : 0;
-                    int hi = (color >> 8) & 0xFF;
-                    int lo = color & 0xFF;
-                    for (int sx = 0; sx < scale; sx++) {
+        for (var row = 0; row < bufferHeight; row++) {
+            var rowOffset = row * bufferWidth;
+            for (var sy = 0; sy < scale; sy++) {
+                for (var col = 0; col < bufferWidth; col++) {
+                    var colorIdx = buffer[rowOffset + col] & 0xFF;
+                    var color = palette.getColor(colorIdx);
+                    var hi = (color >> 8) & 0xFF;
+                    var lo = color & 0xFF;
+                    for (var sx = 0; sx < scale; sx++) {
                         spi.transfer(hi);
                         spi.transfer(lo);
                     }

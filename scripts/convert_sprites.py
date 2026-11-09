@@ -3,20 +3,14 @@
 # SPDX-License-Identifier: MIT
 
 import os
-import sys
 import zlib
 import struct
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 GRAPHICS_DIR = os.path.join(PROJECT_ROOT, "graphics")
-SDCARD_DIR = os.path.join(PROJECT_ROOT, "sdcard")
-
-# Standard 16-bit RGB565 conversion
-def to_rgb565(r, g, b):
-    r5 = (r >> 3) & 0x1F
-    g6 = (g >> 2) & 0x3F
-    b5 = (b >> 3) & 0x1F
-    return (r5 << 11) | (g6 << 5) | b5
+JAVA_OUT_PATH = os.path.join(
+    PROJECT_ROOT, "src", "main", "java", "com", "juanmedina", "junomochi", "SpriteAssets.java"
+)
 
 # Master palette (index 0 is transparent, index 1 is room floor color)
 FLOOR_COLOR_565 = 0x3186
@@ -50,7 +44,7 @@ def read_png(filepath):
             chunk_len = struct.unpack('>I', chunk_len_bytes)[0]
             chunk_type = f.read(4)
             chunk_data = f.read(chunk_len)
-            f.read(4) # CRC
+            f.read(4)
             if chunk_type == b'IHDR':
                 width, height, bit_depth, color_type, comp, filt, interlace = struct.unpack('>IIBBBBB', chunk_data)
             elif chunk_type == b'IDAT':
@@ -132,11 +126,9 @@ def encode_segments(png_filename):
                 span_pixels.append(p_idx)
                 col += 1
 
-            # Split span_pixels into literal and repeat sub-segments (run >= 5 saves bytes)
             i = 0
             n = len(span_pixels)
             while i < n:
-                # Check length of identical run starting at i
                 run_color = span_pixels[i]
                 run_len = 1
                 while i + run_len < n and span_pixels[i + run_len] == run_color:
@@ -181,13 +173,6 @@ def encode_segments(png_filename):
                             'pixels': lit_pixels
                         })
 
-    # Binary packing:
-    # Header: uint16 total_segments (big-endian)
-    # Per segment:
-    #   uint8 row
-    #   uint8 col
-    #   uint8 flag_and_length: (bit 7 = 1 for repeat/memset, bits 0..6 = length)
-    #   payload: 1 byte color if repeat, else length bytes of palette indices
     data = bytearray(struct.pack('>H', len(segments)))
     for s in segments:
         data.append(s['row'])
@@ -202,75 +187,102 @@ def encode_segments(png_filename):
 
     return w, h, segments, data
 
-def main():
-    # Always clean the sdcard folder before conversion
-    if os.path.exists(SDCARD_DIR):
-        for item in os.listdir(SDCARD_DIR):
-            p = os.path.join(SDCARD_DIR, item)
-            if os.path.isfile(p):
-                os.remove(p)
-    else:
-        os.makedirs(SDCARD_DIR, exist_ok=True)
+def to_signed_byte(b):
+    return b - 256 if b >= 128 else b
 
+def format_byte_array(name, data):
+    signed_vals = [str(to_signed_byte(b)) for b in data]
+    lines = [f"    public static final byte[] {name} = {{"]
+    for i in range(0, len(signed_vals), 16):
+        chunk = ", ".join(signed_vals[i:i + 16])
+        comma = "," if i + 16 < len(signed_vals) else ""
+        lines.append(f"        {chunk}{comma}")
+    lines.append("    };")
+    return "\n".join(lines)
+
+def format_int_array(name, ints):
+    hex_vals = [f"0x{c:04X}" for c in ints]
+    lines = [f"    public static final int[] {name} = {{"]
+    for i in range(0, len(hex_vals), 8):
+        chunk = ", ".join(hex_vals[i:i + 8])
+        comma = "," if i + 8 < len(hex_vals) else ""
+        lines.append(f"        {chunk}{comma}")
+    lines.append("    };")
+    return "\n".join(lines)
+
+def main():
     targets = [
-        "walk_left_stand.png",
-        "walk_left_step_left.png",
-        "walk_left_step_right.png",
-        "walk_right_stand.png",
-        "walk_right_step_left.png",
-        "walk_right_step_right.png",
-        "walk_up_stand.png",
-        "walk_up_step_left.png",
-        "walk_up_step_right.png",
-        "walk_down_stand.png",
-        "walk_down_step_left.png",
-        "walk_down_step_right.png",
-        "typing_right_frame0.png",
-        "typing_right_frame1.png",
-        "typing_left_frame0.png",
-        "typing_left_frame1.png",
-        "desk_side.png",
-        "pc_side.png",
-        "chair_side.png",
-        "small_painting.png",
-        "small_painting_2.png",
-        "large_painting.png",
-        "clock.png",
-        "hanging_plant.png",
-        "plant.png",
-        "plant_2.png",
-        "large_plant.png",
-        "bin.png",
+        ("WALK_LEFT_STAND", "walk_left_stand.png"),
+        ("WALK_LEFT_STEP_LEFT", "walk_left_step_left.png"),
+        ("WALK_LEFT_STEP_RIGHT", "walk_left_step_right.png"),
+        ("WALK_RIGHT_STAND", "walk_right_stand.png"),
+        ("WALK_RIGHT_STEP_LEFT", "walk_right_step_left.png"),
+        ("WALK_RIGHT_STEP_RIGHT", "walk_right_step_right.png"),
+        ("WALK_DOWN_STAND", "walk_down_stand.png"),
+        ("TYPING_RIGHT_FRAME0", "typing_right_frame0.png"),
+        ("TYPING_RIGHT_FRAME1", "typing_right_frame1.png"),
+        ("DESK_SIDE", "desk_side.png"),
+        ("PC_SIDE", "pc_side.png"),
+        ("CHAIR_SIDE", "chair_side.png"),
+        ("SMALL_PAINTING", "small_painting.png"),
+        ("SMALL_PAINTING_2", "small_painting_2.png"),
+        ("LARGE_PAINTING", "large_painting.png"),
+        ("CLOCK", "clock.png"),
+        ("HANGING_PLANT", "hanging_plant.png"),
+        ("PLANT", "plant.png"),
+        ("PLANT_2", "plant_2.png"),
+        ("BIN", "bin.png"),
     ]
 
-    print(f"=== Converting {len(targets)} Sprites to Segment Binary Format ===")
-    print(f"Graphics source: {GRAPHICS_DIR}")
-    print(f"SD card target:  {SDCARD_DIR}\n")
+    print(f"=== Packing {len(targets)} Sprites into Single Flash Table in {JAVA_OUT_PATH} ===")
+    all_data = bytearray()
+    offsets = []
 
-    for png_name in targets:
-        bin_name = os.path.splitext(png_name)[0] + ".bin"
+    for const_name, png_name in targets:
+        offset = len(all_data)
         w, h, segments, data = encode_segments(png_name)
-        out_path = os.path.join(SDCARD_DIR, bin_name)
-        with open(out_path, 'wb') as f:
-            f.write(data)
+        all_data.extend(data)
+        offsets.append((const_name, offset, w, h, len(data), len(segments)))
+        print(f"  {const_name:24s} ({w}x{h}) @ offset {offset:4d}: {len(data):3d} bytes ({len(segments)} spans)")
 
-        raw_size = w * h
-        print(f"[{bin_name}]")
-        print(f"  Dimensions: {w}x{h} ({raw_size} bytes uncompressed)")
-        print(f"  Segments:   {len(segments)}")
-        print(f"  File size:  {len(data)} bytes ({len(data)*100/raw_size:.1f}% of raw)\n")
+    pal_bytes = len(PALETTE) * 4
+    total_flash = len(all_data) + pal_bytes
+    print(f"  {'PALETTE_COLORS':24s} ({len(PALETTE)} colors): {pal_bytes} bytes")
+    print(f"Total embedded Flash (.rodata): {total_flash} bytes (0 bytes Arena!)\n")
 
-    # Export palette.bin
-    pal_bytes = bytearray()
-    for c in PALETTE:
-        pal_bytes.extend(struct.pack('>H', c))
-    pal_path = os.path.join(SDCARD_DIR, "palette.bin")
-    with open(pal_path, 'wb') as f:
-        f.write(pal_bytes)
-    print(f"[palette.bin] Exported {len(PALETTE)} colors ({len(pal_bytes)} bytes)\n")
+    java_lines = [
+        "// SPDX-FileCopyrightText: 2026 Juan Medina",
+        "// SPDX-License-Identifier: MIT",
+        "",
+        "package com.juanmedina.junomochi;",
+        "",
+        "/**",
+        " * Auto-generated embedded sprite and palette assets stored directly in Flash (.rodata).",
+        " * Generated by scripts/convert_sprites.py.",
+        " */",
+        "public final class SpriteAssets {",
+        "",
+    ]
 
-    print("Conversion complete!")
+    for const_name, offset, w, h, length, _ in offsets:
+        java_lines.append(f"    public static final int {const_name} = {offset};")
+
+    java_lines.extend([
+        "",
+        format_int_array("PALETTE_COLORS", PALETTE),
+        "",
+        format_byte_array("DATA", all_data),
+        "",
+        "    private SpriteAssets() {",
+        "    }",
+        "}",
+        ""
+    ])
+
+    with open(JAVA_OUT_PATH, "w", encoding="utf-8", newline="\n") as f:
+        f.write("\n".join(java_lines))
+
+    print("Successfully generated SpriteAssets.java!")
 
 if __name__ == '__main__':
     main()
-

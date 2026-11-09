@@ -47,25 +47,21 @@ public final class TileBuffer {
     }
 
     /**
-     * Composites a sprite's opaque spans on top of whatever is already in the buffer,
+     * Composites a sprite's opaque spans from Flash (SpriteAssets.DATA) on top of the buffer,
      * shifted horizontally by offsetX and vertically by offsetY (in unscaled sprite pixels).
-     * Transparent areas of the sprite leave the existing background untouched.
      */
     public void composite(Sprite sprite, int offsetX, int offsetY, boolean flipX) {
         if (sprite == null) {
             return;
         }
-        var data = sprite.getData();
-        if (data == null || data.length < 2) {
-            return;
-        }
-        var numSpans = ((data[0] & 0xFF) << 8) | (data[1] & 0xFF);
-        var ptr = 2;
+        var ptr = sprite.getOffset();
+        var numSpans = ((SpriteAssets.DATA[ptr] & 0xFF) << 8) | (SpriteAssets.DATA[ptr + 1] & 0xFF);
+        ptr += 2;
 
         for (var i = 0; i < numSpans; i++) {
-            var row = (data[ptr++] & 0xFF) + offsetY;
-            var col = data[ptr++] & 0xFF;
-            var flagLen = data[ptr++] & 0xFF;
+            var row = (SpriteAssets.DATA[ptr++] & 0xFF) + offsetY;
+            var col = SpriteAssets.DATA[ptr++] & 0xFF;
+            var flagLen = SpriteAssets.DATA[ptr++] & 0xFF;
             var isRepeat = (flagLen & 0x80) != 0;
             var spanLen = flagLen & 0x7F;
 
@@ -73,7 +69,7 @@ public final class TileBuffer {
             var rowOffset = row * width;
 
             if (isRepeat) {
-                var colorIdx = data[ptr++];
+                var colorIdx = SpriteAssets.DATA[ptr++];
                 if (row >= 0 && row < height) {
                     for (var c = 0; c < spanLen; c++) {
                         var dstCol = drawCol + c;
@@ -88,7 +84,7 @@ public final class TileBuffer {
                         var dstCol = drawCol + c;
                         if (dstCol >= 0 && dstCol < width) {
                             var srcCol = flipX ? (spanLen - 1 - c) : c;
-                            pixels[rowOffset + dstCol] = data[ptr + srcCol];
+                            pixels[rowOffset + dstCol] = SpriteAssets.DATA[ptr + srcCol];
                         }
                     }
                 }
@@ -126,4 +122,3 @@ public final class TileBuffer {
         }
     }
 }
-

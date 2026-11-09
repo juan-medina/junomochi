@@ -3,66 +3,19 @@
 
 package com.juanmedina.junomochi;
 
-import java.io.InputStream;
-
 /**
- * High-level span-encoded 2D sprite with native transparency.
+ * High-level span-encoded 2D sprite referencing an offset inside SpriteAssets.DATA in Flash (.rodata).
  */
 public final class Sprite {
 
-    public static final int MAX_DATA_SIZE = 400;
-    public static final int MAX_STATIC_DATA_SIZE = 560;
+    private final int width;
+    private final int height;
+    private final int offset;
 
-    private int width;
-    private int height;
-    private final byte[] data;
-    private int dataLength;
-
-    public Sprite(int width, int height, byte[] data, int dataLength) {
+    public Sprite(int width, int height, int offset) {
         this.width = width;
         this.height = height;
-        this.data = data;
-        this.dataLength = dataLength;
-    }
-
-    /**
-     * Creates a reusable Sprite with a fixed backing buffer of MAX_STATIC_DATA_SIZE bytes.
-     */
-    public Sprite() {
-        this.width = 0;
-        this.height = 0;
-        this.data = new byte[MAX_STATIC_DATA_SIZE];
-        this.dataLength = 0;
-    }
-
-    /**
-     * Loads a sprite from an InputStream into this reusable Sprite's buffer.
-     */
-    public boolean reload(InputStream in, int width, int height) {
-        if (in == null) {
-            return false;
-        }
-        var capacity = data.length;
-        var count = 0;
-        try {
-            while (count < capacity) {
-                var n = in.read(data, count, capacity - count);
-                if (n <= 0) {
-                    break;
-                }
-                count += n;
-            }
-            in.close();
-        } catch (Exception ignored) {
-            return false;
-        }
-        if (count == 0) {
-            return false;
-        }
-        this.width = width;
-        this.height = height;
-        this.dataLength = count;
-        return true;
+        this.offset = offset;
     }
 
     public int getWidth() {
@@ -73,40 +26,8 @@ public final class Sprite {
         return height;
     }
 
-    public byte[] getData() {
-        return data;
-    }
-
-    public int getDataLength() {
-        return dataLength;
-    }
-
-    /**
-     * Loads a sprite from an InputStream.
-     */
-    public static Sprite load(InputStream in, int width, int height) {
-        if (in == null) {
-            return null;
-        }
-        var buffer = new byte[MAX_DATA_SIZE];
-        var count = 0;
-        try {
-            while (count < MAX_DATA_SIZE) {
-                var n = in.read(buffer, count, MAX_DATA_SIZE - count);
-                if (n <= 0) {
-                    break;
-                }
-                count += n;
-            }
-            in.close();
-        } catch (Exception ignored) {
-            return null;
-        }
-
-        if (count == 0) {
-            return null;
-        }
-        return new Sprite(width, height, buffer, count);
+    public int getOffset() {
+        return offset;
     }
 
     /**

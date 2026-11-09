@@ -3,12 +3,9 @@
 
 package com.juanmedina.junomochi;
 
-import io.github.jabrena.juno.hardware.device.sd.SdCard;
-import java.io.InputStream;
-
 /**
- * Renders the static office room background, wall gallery, floor plants, and workstation.
- * Reuses a single sprite buffer so static assets consume zero additional heap after startup.
+ * Renders the static office room background, wall gallery, floor plants, and workstation
+ * directly from embedded Flash (.rodata) sprite tables with zero heap allocation.
  */
 public final class RoomScene {
 
@@ -32,9 +29,8 @@ public final class RoomScene {
     /**
      * Draws the entire static office room onto the display.
      */
-    public static void draw(WaveshareTftShield tft, SdCard sd, Palette palette) {
+    public static void draw(WaveshareTftShield tft, Palette palette) {
         var floorColor = palette.getColor(FLOOR_PALETTE_INDEX);
-        var staticSprite = new Sprite();
 
         // 1. Top wall, wooden baseboard, and floor background
         tft.fillRect(0, 0, WaveshareTftShield.WIDTH, 66, WALL_COLOR);
@@ -42,27 +38,24 @@ public final class RoomScene {
         tft.fillRect(0, 72, WaveshareTftShield.WIDTH, WaveshareTftShield.HEIGHT - 72, floorColor);
 
         // 2. Top wall gallery (hanging plant, portraits, landscape painting, clock)
-        drawStatic(sd.open("hanging_plant.bin"), staticSprite, tft, 16, 32, 8, -24, palette);
-        drawStatic(sd.open("small_painting.bin"), staticSprite, tft, 16, 32, 68, -21, palette);
-        drawStatic(sd.open("large_painting.bin"), staticSprite, tft, 32, 32, 128, -21, palette);
-        drawStatic(sd.open("small_painting_2.bin"), staticSprite, tft, 16, 32, 224, -21, palette);
-        drawStatic(sd.open("clock.bin"), staticSprite, tft, 16, 32, 272, -21, palette);
+        drawStatic(tft, SpriteAssets.HANGING_PLANT, 16, 8, -24, palette);
+        drawStatic(tft, SpriteAssets.SMALL_PAINTING, 16, 68, -21, palette);
+        drawStatic(tft, SpriteAssets.LARGE_PAINTING, 32, 128, -21, palette);
+        drawStatic(tft, SpriteAssets.SMALL_PAINTING_2, 16, 224, -21, palette);
+        drawStatic(tft, SpriteAssets.CLOCK, 16, 272, -21, palette);
 
         // 3. Floor plants (left side) and trash bin (bottom-right near desk)
-        drawStatic(sd.open("plant.bin"), staticSprite, tft, 16, 32, 8, 36, palette);
-        drawStatic(sd.open("plant_2.bin"), staticSprite, tft, 16, 32, 8, 140, palette);
-        drawStatic(sd.open("bin.bin"), staticSprite, tft, 16, 16, CHAIR_X, 192, palette);
+        drawStatic(tft, SpriteAssets.PLANT, 16, 8, 36, palette);
+        drawStatic(tft, SpriteAssets.PLANT_2, 16, 8, 140, palette);
+        drawStatic(tft, SpriteAssets.BIN, 16, CHAIR_X, 192, palette);
 
         // 4. Right-side workstation (desk and PC)
-        drawStatic(sd.open("desk_side.bin"), staticSprite, tft, 16, 64, DESK_X, DESK_Y, palette);
-        drawStatic(sd.open("pc_side.bin"), staticSprite, tft, 16, 32, DESK_X, CHAR_Y, palette);
+        drawStatic(tft, SpriteAssets.DESK_SIDE, 16, DESK_X, DESK_Y, palette);
+        drawStatic(tft, SpriteAssets.PC_SIDE, 16, DESK_X, CHAR_Y, palette);
     }
 
-    private static void drawStatic(InputStream in, Sprite temp, WaveshareTftShield tft,
-            int w, int h, int x, int y, Palette palette) {
-        if (temp.reload(in, w, h)) {
-            temp.draw(tft, x, y, SCALE, palette);
-        }
+    private static void drawStatic(WaveshareTftShield tft, int offset,
+            int w, int x, int y, Palette palette) {
+        tft.drawSpanSprite(x, y, w, SCALE, false, offset, palette);
     }
 }
-
