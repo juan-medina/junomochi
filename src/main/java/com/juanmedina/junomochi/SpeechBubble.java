@@ -6,26 +6,22 @@ package com.juanmedina.junomochi;
 import io.github.jabrena.juno.hardware.display.Display;
 
 /**
- * Renders and clears a pixel-art speech bubble with a downward pointer tail.
+ * Renders and clears a pixel-art speech bubble at dynamic screen coordinates.
  */
 public final class SpeechBubble {
 
     private static final int BORDER_COLOR = 0x3164;
     private static final int TAIL_HEIGHT = 8;
 
-    private final int x;
-    private final int y;
     private final int width;
     private final int height;
-    private final int tailX;
+    private int x;
+    private int y;
     private boolean visible;
 
-    public SpeechBubble(int x, int y, int width, int height, int tailX) {
-        this.x = x;
-        this.y = y;
+    public SpeechBubble(int width, int height) {
         this.width = width;
         this.height = height;
-        this.tailX = tailX;
         this.visible = false;
     }
 
@@ -34,9 +30,16 @@ public final class SpeechBubble {
     }
 
     /**
-     * Draws the speech bubble with two lines of text.
+     * Draws the speech bubble at (x, y) with a downward pointer tail at tailX.
      */
-    public void show(WaveshareTftShield tft, String line1, String line2) {
+    public void showAt(WaveshareTftShield tft, int x, int y, int tailX,
+            String line1, String line2, int bgColor) {
+        if (visible) {
+            hide(tft, bgColor);
+        }
+        this.x = x;
+        this.y = y;
+
         // Outer dark border and inner white fill
         tft.fillRect(x, y, width, height, BORDER_COLOR);
         tft.fillRect(x + 2, y + 2, width - 4, height - 4, Display.WHITE);
@@ -49,9 +52,9 @@ public final class SpeechBubble {
 
         tft.setTextColor(Display.BLACK, Display.WHITE);
         tft.setTextSize(1);
-        tft.setCursor(x + 8, y + 7);
+        tft.setCursor(x + 6, y + 7);
         tft.print(line1);
-        tft.setCursor(x + 8, y + 19);
+        tft.setCursor(x + 6, y + 19);
         tft.print(line2);
         visible = true;
     }
@@ -66,4 +69,3 @@ public final class SpeechBubble {
         }
     }
 }
-

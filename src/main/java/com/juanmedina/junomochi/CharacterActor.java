@@ -18,10 +18,21 @@ public final class CharacterActor {
 
     private static final int WALK_FRAME_MS = 180;
     private static final int CODING_FRAME_MS = 300;
-    private static final int INITIAL_CODING_MS = 10000;
-    private static final int REPEAT_CODING_MS = 20000;
-    private static final int TIRED_MSG_MS = 2500;
+    private static final int INITIAL_CODING_MS = 20000;
+    private static final int REPEAT_CODING_MS = 40000;
+
+    private static final int BUBBLE_DURATION_MS = 2600;
+    private static final int CODING_CHAT_INTERVAL_MS = 8500;
+    private static final int TAUNT_INTERVAL_MS = 6500;
     private static final int BACK_MSG_MS = 1800;
+
+    private static final int BUBBLE_W = 104;
+    private static final int BUBBLE_H = 34;
+    private static final int BUBBLE_Y = 74;
+    private static final int LEFT_BUBBLE_X = 60;
+    private static final int LEFT_TAIL_X = RoomScene.LEFT_BOUND_X + 20;
+    private static final int DESK_BUBBLE_X = 112;
+    private static final int DESK_TAIL_X = RoomScene.CHAIR_X - 4;
 
     private static final int STEP_PX = 4 * RoomScene.SCALE;
     private static final int CHAIR_OFFSET_Y = -3;
@@ -42,6 +53,9 @@ public final class CharacterActor {
     private int codingDurationMs;
     private int charX;
     private int stateStart;
+    private int bubbleStart;
+    private int nextChatTime;
+    private int rngState;
     private SpriteAnim activeAnim;
 
     private CharacterActor(
@@ -56,7 +70,7 @@ public final class CharacterActor {
         this.palette = palette;
         this.floorColor = palette.getColor(RoomScene.FLOOR_PALETTE_INDEX);
         this.buffer = new TileBuffer(16, 32);
-        this.bubble = new SpeechBubble(60, 74, 112, 34, RoomScene.LEFT_BOUND_X + 20);
+        this.bubble = new SpeechBubble(BUBBLE_W, BUBBLE_H);
         this.chair = chair;
         this.downStand = downStand;
         this.leftAnim = leftAnim;
@@ -65,6 +79,7 @@ public final class CharacterActor {
         this.state = STATE_CODING;
         this.codingDurationMs = INITIAL_CODING_MS;
         this.charX = RoomScene.CHAIR_X;
+        this.rngState = 0x5A3C9E17;
         this.activeAnim = codingAnim;
     }
 
@@ -106,6 +121,7 @@ public final class CharacterActor {
      */
     public void start(int nowMs) {
         this.stateStart = nowMs;
+        this.nextChatTime = nowMs + 4000;
         drawAtChair(activeAnim.getCurrentFrame(), CHAIR_OFFSET_Y);
     }
 
@@ -124,11 +140,33 @@ public final class CharacterActor {
         }
     }
 
+    private int nextRandom(int bound, int now) {
+        rngState = rngState * 1664525 + 1013904223 + now;
+        var val = (rngState >>> 8) & 0x7FFF;
+        return val % bound;
+    }
+
     private void updateCoding(int now) {
+        if (bubble.isVisible() && now - bubbleStart >= BUBBLE_DURATION_MS) {
+            bubble.hide(tft, floorColor);
+        }
+
         if (now - stateStart >= codingDurationMs) {
+            bubble.hide(tft, floorColor);
             state = STATE_WALK_LEFT;
             activeAnim = leftAnim;
-        } else if (activeAnim.update(now)) {
+            return;
+        }
+
+        if (!bubble.isVisible() && now - nextChatTime >= 0
+                && (stateStart + codingDurationMs) - now > BUBBLE_DURATION_MS + 1000) {
+            var idx = nextRandom(Phrases.CODING_COUNT, now);
+            Phrases.showCoding(bubble, tft, DESK_BUBBLE_X, BUBBLE_Y, DESK_TAIL_X, idx, floorColor);
+            bubbleStart = now;
+            nextChatTime = now + CODING_CHAT_INTERVAL_MS;
+        }
+
+        if (activeAnim.update(now)) {
             drawAtChair(activeAnim.getCurrentFrame(), CHAIR_OFFSET_Y);
         }
     }
@@ -155,21 +193,32 @@ public final class CharacterActor {
             charX = RoomScene.LEFT_BOUND_X;
             state = STATE_TIRED;
             stateStart = now;
+            bubbleStart = now;
+            nextChatTime = now + TAUNT_INTERVAL_MS;
             drawAtCurrentPos(downStand, 0);
-            bubble.show(tft, "I'm tired", "of coding");
+            var idx = nextRandom(Phrases.TIRED_COUNT, now);
+            Phrases.showTired(bubble, tft, LEFT_BUBBLE_X, BUBBLE_Y, LEFT_TAIL_X, idx, floorColor);
         } else {
             drawAtCurrentPos(frame, 0);
         }
     }
 
     private void updateTired(int now, boolean touchedEdge) {
-        if (bubble.isVisible() && now - stateStart >= TIRED_MSG_MS) {
+        if (bubble.isVisible() && now - bubbleStart >= BUBBLE_DURATION_MS) {
             bubble.hide(tft, floorColor);
+        } else if (!bubble.isVisible() && now - nextChatTime >= 0) {
+            var idx = nextRandom(Phrases.TAUNT_COUNT, now);
+            Phrases.showTaunt(bubble, tft, LEFT_BUBBLE_X, BUBBLE_Y, LEFT_TAIL_X, idx, floorColor);
+            bubbleStart = now;
+            nextChatTime = now + TAUNT_INTERVAL_MS;
         }
+
         if (touchedEdge) {
             state = STATE_BACK_MSG;
             stateStart = now;
-            bubble.show(tft, "Ok, ok back", "to coding!");
+            bubbleStart = now;
+            var idx = nextRandom(Phrases.BACK_COUNT, now);
+            Phrases.showBack(bubble, tft, LEFT_BUBBLE_X, BUBBLE_Y, LEFT_TAIL_X, idx, floorColor);
         }
     }
 
@@ -196,6 +245,7 @@ public final class CharacterActor {
             codingDurationMs = REPEAT_CODING_MS;
             activeAnim = codingAnim;
             stateStart = now;
+            nextChatTime = now + 5000;
             drawAtChair(activeAnim.getCurrentFrame(), CHAIR_OFFSET_Y);
         } else {
             drawAtCurrentPos(activeAnim.getCurrentFrame(), 0);
@@ -216,4 +266,3 @@ public final class CharacterActor {
         buffer.blit(tft, charX, RoomScene.CHAR_Y, RoomScene.SCALE, palette);
     }
 }
-
