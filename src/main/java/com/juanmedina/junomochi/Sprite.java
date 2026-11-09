@@ -10,18 +10,59 @@ import java.io.InputStream;
  */
 public final class Sprite {
 
-    public static final int MAX_DATA_SIZE = 560;
+    public static final int MAX_DATA_SIZE = 360;
+    public static final int MAX_STATIC_DATA_SIZE = 560;
 
-    private final int width;
-    private final int height;
+    private int width;
+    private int height;
     private final byte[] data;
-    private final int dataLength;
+    private int dataLength;
 
     public Sprite(int width, int height, byte[] data, int dataLength) {
         this.width = width;
         this.height = height;
         this.data = data;
         this.dataLength = dataLength;
+    }
+
+    /**
+     * Creates a reusable Sprite with a fixed backing buffer of MAX_STATIC_DATA_SIZE bytes.
+     */
+    public Sprite() {
+        this.width = 0;
+        this.height = 0;
+        this.data = new byte[MAX_STATIC_DATA_SIZE];
+        this.dataLength = 0;
+    }
+
+    /**
+     * Loads a sprite from an InputStream into this reusable Sprite's buffer.
+     */
+    public boolean reload(InputStream in, int width, int height) {
+        if (in == null) {
+            return false;
+        }
+        int capacity = data.length;
+        int count = 0;
+        try {
+            while (count < capacity) {
+                int n = in.read(data, count, capacity - count);
+                if (n <= 0) {
+                    break;
+                }
+                count += n;
+            }
+            in.close();
+        } catch (Exception ignored) {
+            return false;
+        }
+        if (count == 0) {
+            return false;
+        }
+        this.width = width;
+        this.height = height;
+        this.dataLength = count;
+        return true;
     }
 
     public int getWidth() {

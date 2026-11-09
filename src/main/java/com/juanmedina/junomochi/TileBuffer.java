@@ -48,10 +48,10 @@ public final class TileBuffer {
 
     /**
      * Composites a sprite's opaque spans on top of whatever is already in the buffer,
-     * shifted horizontally by offsetX (in unscaled sprite pixels).
+     * shifted horizontally by offsetX and vertically by offsetY (in unscaled sprite pixels).
      * Transparent areas of the sprite leave the existing background untouched.
      */
-    public void composite(Sprite sprite, int offsetX, boolean flipX) {
+    public void composite(Sprite sprite, int offsetX, int offsetY, boolean flipX) {
         if (sprite == null) {
             return;
         }
@@ -63,7 +63,7 @@ public final class TileBuffer {
         int ptr = 2;
 
         for (int i = 0; i < numSpans; i++) {
-            int row = data[ptr++] & 0xFF;
+            int row = (data[ptr++] & 0xFF) + offsetY;
             int col = data[ptr++] & 0xFF;
             int flagLen = data[ptr++] & 0xFF;
             boolean isRepeat = (flagLen & 0x80) != 0;
@@ -97,16 +97,24 @@ public final class TileBuffer {
         }
     }
 
+    public void composite(Sprite sprite, int offsetX, int offsetY) {
+        composite(sprite, offsetX, offsetY, false);
+    }
+
+    public void composite(Sprite sprite, int offsetX, boolean flipX) {
+        composite(sprite, offsetX, 0, flipX);
+    }
+
     public void composite(Sprite sprite, int offsetX) {
-        composite(sprite, offsetX, false);
+        composite(sprite, offsetX, 0, false);
     }
 
     public void composite(Sprite sprite, boolean flipX) {
-        composite(sprite, 0, flipX);
+        composite(sprite, 0, 0, flipX);
     }
 
     public void composite(Sprite sprite) {
-        composite(sprite, 0, false);
+        composite(sprite, 0, 0, false);
     }
 
     /**

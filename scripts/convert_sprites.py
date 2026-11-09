@@ -18,14 +18,19 @@ def to_rgb565(r, g, b):
     b5 = (b >> 3) & 0x1F
     return (r5 << 11) | (g6 << 5) | b5
 
-# Master palette (index 0 is transparent)
-PALETTE = [0x0000]
-COLOR_TO_INDEX = {}
+# Master palette (index 0 is transparent, index 1 is room floor color)
+FLOOR_COLOR_565 = 0x3186
+PALETTE = [0x0000, FLOOR_COLOR_565]
+COLOR_TO_INDEX = {FLOOR_COLOR_565: 1}
 
 def get_palette_index(r, g, b, a):
     if a <= 50:
         return 0
-    c565 = to_rgb565(r, g, b)
+    # Quantize to RGB332-aligned RGB565 (max 255 colors) so all sprites fit in a 256-entry 8-bit palette
+    r5 = ((r >> 5) * 31 + 3) // 7
+    g6 = ((g >> 5) * 63 + 3) // 7
+    b5 = ((b >> 6) * 31 + 1) // 3
+    c565 = (r5 << 11) | (g6 << 5) | b5
     if c565 not in COLOR_TO_INDEX:
         idx = len(PALETTE)
         PALETTE.append(c565)
@@ -227,6 +232,15 @@ def main():
         "desk_side.png",
         "pc_side.png",
         "chair_side.png",
+        "small_painting.png",
+        "small_painting_2.png",
+        "large_painting.png",
+        "clock.png",
+        "hanging_plant.png",
+        "plant.png",
+        "plant_2.png",
+        "large_plant.png",
+        "bin.png",
     ]
 
     print(f"=== Converting {len(targets)} Sprites to Segment Binary Format ===")
