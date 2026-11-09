@@ -53,6 +53,7 @@ public final class WaveshareTftShield implements Display {
     private final DigitalOutput cs;
     private final DigitalOutput dc;
     private final DigitalOutput bl;
+    private final DigitalOutput touchCs;
     private final int touchIrqPin;
     private final int sdCsPin;
     private SdCard sdCard;
@@ -92,10 +93,10 @@ public final class WaveshareTftShield implements Display {
         this.cs = DigitalOutput.of(csPin);
         this.dc = DigitalOutput.of(dcPin);
         this.bl = DigitalOutput.of(blPin);
+        this.touchCs = DigitalOutput.of(touchCsPin);
         this.touchIrqPin = touchIrqPin;
         this.sdCsPin = sdCsPin;
 
-        DigitalOutput touchCs = DigitalOutput.of(touchCsPin);
         DigitalOutput sdCs = DigitalOutput.of(sdCsPin);
 
         // Configure touch IRQ as input with pullup (active-low when touched)
@@ -111,6 +112,15 @@ public final class WaveshareTftShield implements Display {
 
         spi.begin();
         init();
+        initTouch();
+    }
+
+    private void initTouch() {
+        touchCs.low();
+        spi.transfer(0x80);
+        spi.transfer(0x00);
+        spi.transfer(0x00);
+        touchCs.high();
     }
 
     private void init() {

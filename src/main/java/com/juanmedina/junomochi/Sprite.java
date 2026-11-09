@@ -10,7 +10,7 @@ import java.io.InputStream;
  */
 public final class Sprite {
 
-    public static final int MAX_DATA_SIZE = 360;
+    public static final int MAX_DATA_SIZE = 400;
     public static final int MAX_STATIC_DATA_SIZE = 560;
 
     private int width;
