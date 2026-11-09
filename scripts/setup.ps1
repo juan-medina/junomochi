@@ -6,7 +6,7 @@ param()
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "=== Setting up Junomichi Project ===" -ForegroundColor Cyan
+Write-Host "=== Setting up Junomochi Project ===" -ForegroundColor Cyan
 
 # 1. Update git submodules
 Write-Host "[1/4] Updating git submodules..." -ForegroundColor Yellow

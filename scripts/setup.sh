@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-echo "=== Setting up Junomichi Project ==="
+echo "=== Setting up Junomochi Project ==="
 
 # 1. Update git submodules
 echo "[1/4] Updating git submodules..."
