@@ -27,7 +27,6 @@ fi
 
 arduino-cli core update-index
 arduino-cli core install arduino:renesas_uno
-arduino-cli lib install SdFat
 
 # 4. Build JUno core modules into local Maven cache
 echo "[4/4] Building JUno dependencies into local ~/.m2 repository..."
