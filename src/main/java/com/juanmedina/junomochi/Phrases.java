@@ -16,7 +16,7 @@ public final class Phrases {
     private Phrases() {
     }
 
-    public static void showCoding(SpeechBubble bubble, WaveshareTftShield tft,
+    public static void showCoding(SpeechBubble bubble, TouchDisplay tft,
             int x, int y, int tailX, int index, int bgColor) {
         switch (index) {
             case 0 -> bubble.showAt(tft, x, y, tailX, "var everything!", "Java 27 rocks!", bgColor);
@@ -30,7 +30,7 @@ public final class Phrases {
         }
     }
 
-    public static void showTired(SpeechBubble bubble, WaveshareTftShield tft,
+    public static void showTired(SpeechBubble bubble, TouchDisplay tft,
             int x, int y, int tailX, int index, int bgColor) {
         switch (index) {
             case 0 -> bubble.showAt(tft, x, y, tailX, "My brain hit a", "StackOverflow!", bgColor);
@@ -42,7 +42,7 @@ public final class Phrases {
         }
     }
 
-    public static void showTaunt(SpeechBubble bubble, WaveshareTftShield tft,
+    public static void showTaunt(SpeechBubble bubble, TouchDisplay tft,
             int x, int y, int tailX, int index, int bgColor) {
         switch (index) {
             case 0 -> bubble.showAt(tft, x, y, tailX, "Tap the screen", "if you dare!", bgColor);
@@ -56,7 +56,7 @@ public final class Phrases {
         }
     }
 
-    public static void showBack(SpeechBubble bubble, WaveshareTftShield tft,
+    public static void showBack(SpeechBubble bubble, TouchDisplay tft,
             int x, int y, int tailX, int index, int bgColor) {
         switch (index) {
             case 0 -> bubble.showAt(tft, x, y, tailX, "Ok, ok! Back", "to the IDE!", bgColor);

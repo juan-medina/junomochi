@@ -29,13 +29,13 @@ public final class RoomScene {
     /**
      * Draws the entire static office room onto the display.
      */
-    public static void draw(WaveshareTftShield tft, Palette palette) {
+    public static void draw(TouchDisplay tft, Palette palette) {
         var floorColor = palette.getColor(FLOOR_PALETTE_INDEX);
 
         // 1. Top wall, wooden baseboard, and floor background
-        tft.fillRect(0, 0, WaveshareTftShield.WIDTH, 66, WALL_COLOR);
-        tft.fillRect(0, 66, WaveshareTftShield.WIDTH, 6, BASEBOARD_COLOR);
-        tft.fillRect(0, 72, WaveshareTftShield.WIDTH, WaveshareTftShield.HEIGHT - 72, floorColor);
+        tft.fillRect(0, 0, TouchDisplay.WIDTH, 66, WALL_COLOR);
+        tft.fillRect(0, 66, TouchDisplay.WIDTH, 6, BASEBOARD_COLOR);
+        tft.fillRect(0, 72, TouchDisplay.WIDTH, TouchDisplay.HEIGHT - 72, floorColor);
 
         // 2. Top wall gallery (hanging plant, portraits, landscape painting, clock)
         drawStatic(tft, SpriteAssets.HANGING_PLANT, 16, 8, -24, palette);
@@ -54,7 +54,7 @@ public final class RoomScene {
         drawStatic(tft, SpriteAssets.PC_SIDE, 16, DESK_X, CHAR_Y, palette);
     }
 
-    private static void drawStatic(WaveshareTftShield tft, int offset,
+    private static void drawStatic(TouchDisplay tft, int offset,
             int w, int x, int y, Palette palette) {
         tft.drawSpanSprite(x, y, w, SCALE, false, offset, palette);
     }

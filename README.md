@@ -7,6 +7,8 @@ SPDX-License-Identifier: MIT
 
 **JUnomochi** is a playful proof of concept showcasing what you can build on an **Arduino UNO R4 WiFi** using ahead-of-time (AOT) Java compilation with [JUno](https://github.com/jabrena/juno).
 
+![JUnomochi Demo](video/junomochi.gif)
+
 Meet your tiny pixel Java developer! He sits at his desk coding away in a cozy pixel-art office complete with wall portraits, a clock, and potted plants, occasionally sharing random thoughts about Java, AOT compilation, and embedded life. After a while, he gets tired of coding, walks across the room, and slacks off by the plants—dropping playful hints and taunts until you **tap the screen to give him a friendly nudge** and send him right back to his keyboard.
 
 ---
@@ -45,7 +47,9 @@ Everything is written in modern Java and compiled ahead-of-time to native ARM Th
 - [`TileBuffer.java`](src/main/java/com/juanmedina/junomochi/TileBuffer.java): A 512-byte (`16×32`) software compositing buffer in RAM that blends the character and chair over the floor color and blits in a single SPI window transaction for 100% flicker-free animation.
 - [`SpeechBubble.java`](src/main/java/com/juanmedina/junomochi/SpeechBubble.java): Renders and auto-dismisses pixel-art speech bubbles at dynamic screen positions.
 - [`Sprite.java`](src/main/java/com/juanmedina/junomochi/Sprite.java), [`SpriteAnim.java`](src/main/java/com/juanmedina/junomochi/SpriteAnim.java), & [`Palette.java`](src/main/java/com/juanmedina/junomochi/Palette.java): Lightweight Flash-offset sprite wrapper, tick-based animation controller, and 16-bit RGB565 palette lookup.
-- [`WaveshareTftShield.java`](src/main/java/com/juanmedina/junomochi/WaveshareTftShield.java): Zero-allocation SPI display and XPT2046 touch driver implementing JUno's `Display` interface.
+- [`TouchDisplay.java`](src/main/java/com/juanmedina/junomochi/TouchDisplay.java): Hardware-agnostic $320 \times 240$ RGB565 display and touch interface extending JUno's `Display`, allowing the exact same scene and actor code to run on both the Arduino UNO R4 WiFi and desktop JVM simulators.
+- [`WaveshareTftShield.java`](src/main/java/com/juanmedina/junomochi/WaveshareTftShield.java): Zero-allocation SPI display and XPT2046 touch driver implementing `TouchDisplay` for the physical hardware.
+- [`DesktopTouchDisplay.java`](src/main/java/com/juanmedina/junomochi/sim/DesktopTouchDisplay.java) & [`DesktopSimulator.java`](src/main/java/com/juanmedina/junomochi/sim/DesktopSimulator.java): Software framebuffer implementation of `TouchDisplay` that runs the game in an interactive desktop window or streams pixel-perfect frames to `ffmpeg` to capture the demo MP4 and GIF.
 
 ---
 
@@ -90,6 +94,20 @@ No MicroSD card is needed—all graphics are embedded in the firmware! Connect y
 *(Optional: If you edit any PNG sprites in [`graphics/`](graphics/), run `.\scripts\convert_sprites.ps1` or `./scripts/convert_sprites.sh` to regenerate [`SpriteAssets.java`](src/main/java/com/juanmedina/junomochi/SpriteAssets.java)).*
 
 Once flashed, watch your JUnomochi code at his desk—and whenever he wanders off to slack by the plants, tap the screen to nudge him back to work!
+
+### 4. Run the Desktop Simulator (Optional)
+
+You can also run the exact same Java scene and character state machine in an interactive $960 \times 720$ desktop window (click anywhere with the mouse to nudge him):
+
+**Windows (PowerShell):**
+```powershell
+.\scripts\sim.ps1
+```
+
+**macOS / Linux:**
+```bash
+./scripts/sim.sh
+```
 
 ---
 

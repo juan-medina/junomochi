@@ -4,7 +4,6 @@
 package com.juanmedina.junomochi;
 
 import io.github.jabrena.juno.hardware.ArduinoUno;
-import io.github.jabrena.juno.hardware.display.Display;
 import io.github.jabrena.juno.hardware.gpio.DigitalOutput;
 import io.github.jabrena.juno.hardware.gpio.Gpio;
 import io.github.jabrena.juno.hardware.led.LedMatrixFontAscii;
@@ -13,9 +12,9 @@ import io.github.jabrena.juno.util.Delay;
 
 /**
  * Driver for the Waveshare 2.8" TFT Touch LCD Shield (320x240, ST7789V / ILI9341 over SPI).
- * Implements Juno's {@link Display} interface with zero heap allocation after startup.
+ * Implements {@link TouchDisplay} with zero heap allocation after startup.
  */
-public final class WaveshareTftShield implements Display {
+public final class WaveshareTftShield implements TouchDisplay {
 
     // Shield default pinout
     public static final int DEFAULT_CS = 10;

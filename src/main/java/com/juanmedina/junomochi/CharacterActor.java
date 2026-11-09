@@ -25,8 +25,8 @@ public final class CharacterActor {
     private static final int BACK_MSG_MS = 1800;
 
     private static final int BUBBLE_W = 104;
-    private static final int BUBBLE_H = 34;
-    private static final int BUBBLE_Y = 74;
+    private static final int BUBBLE_H = 27;
+    private static final int BUBBLE_Y = 72;
     private static final int LEFT_BUBBLE_X = 60;
     private static final int LEFT_TAIL_X = RoomScene.LEFT_BOUND_X + 20;
     private static final int DESK_BUBBLE_X = 112;
@@ -35,7 +35,7 @@ public final class CharacterActor {
     private static final int STEP_PX = 4 * RoomScene.SCALE;
     private static final int CHAIR_OFFSET_Y = -3;
 
-    private final WaveshareTftShield tft;
+    private final TouchDisplay tft;
     private final Palette palette;
     private final int floorColor;
     private final TileBuffer buffer;
@@ -57,7 +57,7 @@ public final class CharacterActor {
     private SpriteAnim activeAnim;
 
     private CharacterActor(
-            WaveshareTftShield tft,
+            TouchDisplay tft,
             Palette palette,
             Sprite chair,
             Sprite downStand,
@@ -84,7 +84,7 @@ public final class CharacterActor {
     /**
      * Creates the character actor backed by embedded Flash sprite assets.
      */
-    public static CharacterActor create(WaveshareTftShield tft, Palette palette) {
+    public static CharacterActor create(TouchDisplay tft, Palette palette) {
         var chair = new Sprite(16, 32, SpriteAssets.CHAIR_SIDE);
         var downStand = new Sprite(16, 32, SpriteAssets.WALK_DOWN_STAND);
 

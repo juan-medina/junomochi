@@ -11,7 +11,7 @@ import io.github.jabrena.juno.hardware.display.Display;
 public final class SpeechBubble {
 
     private static final int BORDER_COLOR = 0x3164;
-    private static final int TAIL_HEIGHT = 8;
+    private static final int TAIL_HEIGHT = 6;
 
     private final int width;
     private final int height;
@@ -32,7 +32,7 @@ public final class SpeechBubble {
     /**
      * Draws the speech bubble at (x, y) with a downward pointer tail at tailX.
      */
-    public void showAt(WaveshareTftShield tft, int x, int y, int tailX,
+    public void showAt(TouchDisplay tft, int x, int y, int tailX,
             String line1, String line2, int bgColor) {
         if (visible) {
             hide(tft, bgColor);
@@ -45,16 +45,16 @@ public final class SpeechBubble {
         tft.fillRect(x + 2, y + 2, width - 4, height - 4, Display.WHITE);
 
         // Downward pointer tail toward character's head
-        tft.fillRect(tailX - 2, y + height, 10, 4, BORDER_COLOR);
-        tft.fillRect(tailX, y + height - 2, 6, 4, Display.WHITE);
-        tft.fillRect(tailX, y + height + 4, 6, 4, BORDER_COLOR);
-        tft.fillRect(tailX + 2, y + height + 2, 2, 4, Display.WHITE);
+        tft.fillRect(tailX - 2, y + height, 10, 3, BORDER_COLOR);
+        tft.fillRect(tailX, y + height - 2, 6, 3, Display.WHITE);
+        tft.fillRect(tailX, y + height + 3, 6, 3, BORDER_COLOR);
+        tft.fillRect(tailX + 2, y + height + 1, 2, 3, Display.WHITE);
 
         tft.setTextColor(Display.BLACK, Display.WHITE);
         tft.setTextSize(1);
-        tft.setCursor(x + 6, y + 7);
+        tft.setCursor(x + 6, y + 5);
         tft.print(line1);
-        tft.setCursor(x + 6, y + 19);
+        tft.setCursor(x + 6, y + 15);
         tft.print(line2);
         visible = true;
     }
@@ -62,7 +62,7 @@ public final class SpeechBubble {
     /**
      * Erases the speech bubble and tail with the given background color.
      */
-    public void hide(WaveshareTftShield tft, int bgColor) {
+    public void hide(TouchDisplay tft, int bgColor) {
         if (visible) {
             tft.fillRect(x, y, width, height + TAIL_HEIGHT, bgColor);
             visible = false;

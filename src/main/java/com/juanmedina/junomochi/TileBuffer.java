@@ -116,7 +116,7 @@ public final class TileBuffer {
     /**
      * Blits the completed composite buffer to the display in a single continuous SPI write.
      */
-    public void blit(WaveshareTftShield display, int x, int y, int scale, Palette palette) {
+    public void blit(TouchDisplay display, int x, int y, int scale, Palette palette) {
         if (display != null) {
             display.drawBuffer(x, y, width, height, scale, pixels, palette);
         }
