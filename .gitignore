@@ -21,5 +21,6 @@ bin/
 # Logs & temp
 *.log
 .env
+.venv/
 .DS_Store
 Thumbs.db

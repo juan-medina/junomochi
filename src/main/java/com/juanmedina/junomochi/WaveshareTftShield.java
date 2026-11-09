@@ -4,9 +4,11 @@
 package com.juanmedina.junomochi;
 
 import io.github.jabrena.juno.hardware.ArduinoUno;
+import io.github.jabrena.juno.hardware.device.sd.SdCard;
 import io.github.jabrena.juno.hardware.display.Display;
 import io.github.jabrena.juno.hardware.gpio.DigitalOutput;
 import io.github.jabrena.juno.hardware.gpio.Gpio;
+import io.github.jabrena.juno.hardware.internal.NativeSdCard;
 import io.github.jabrena.juno.hardware.led.LedMatrixFontAscii;
 import io.github.jabrena.juno.hardware.spi.Spi;
 import io.github.jabrena.juno.util.Delay;
@@ -52,6 +54,8 @@ public final class WaveshareTftShield implements Display {
     private final DigitalOutput dc;
     private final DigitalOutput bl;
     private final int touchIrqPin;
+    private final int sdCsPin;
+    private SdCard sdCard;
 
     private int cursorX;
     private int cursorY;
@@ -89,6 +93,7 @@ public final class WaveshareTftShield implements Display {
         this.dc = DigitalOutput.of(dcPin);
         this.bl = DigitalOutput.of(blPin);
         this.touchIrqPin = touchIrqPin;
+        this.sdCsPin = sdCsPin;
 
         DigitalOutput touchCs = DigitalOutput.of(touchCsPin);
         DigitalOutput sdCs = DigitalOutput.of(sdCsPin);
@@ -135,6 +140,14 @@ public final class WaveshareTftShield implements Display {
     /** Returns whether the touch panel is currently being pressed (active-low IRQ). */
     public boolean isTouched() {
         return !gpio.digitalRead(touchIrqPin);
+    }
+
+    /** Returns the SdCard interface for the onboard micro-SD slot. */
+    public SdCard getSdCard() {
+        if (sdCard == null) {
+            sdCard = NativeSdCard.sdCard(sdCsPin);
+        }
+        return sdCard;
     }
 
     @Override
@@ -292,6 +305,19 @@ public final class WaveshareTftShield implements Display {
             int scale,
             byte[] spriteData,
             int[] palette) {
+        drawSprite(startX, startY, spriteWidth, spriteHeight, scale, false, spriteData, palette);
+    }
+
+    /** Draws a 2D byte-indexed sprite with optional horizontal flipping. */
+    public void drawSprite(
+            int startX,
+            int startY,
+            int spriteWidth,
+            int spriteHeight,
+            int scale,
+            boolean flipX,
+            byte[] spriteData,
+            int[] palette) {
         int scaledW = spriteWidth * scale;
         int scaledH = spriteHeight * scale;
 
@@ -301,7 +327,272 @@ public final class WaveshareTftShield implements Display {
             int rowOffset = row * spriteWidth;
             for (int sy = 0; sy < scale; sy++) {
                 for (int col = 0; col < spriteWidth; col++) {
-                    int color = palette[spriteData[rowOffset + col] & 0xFF];
+                    int srcCol = flipX ? (spriteWidth - 1 - col) : col;
+                    int color = palette[spriteData[rowOffset + srcCol] & 0xFF];
+                    int hi = (color >> 8) & 0xFF;
+                    int lo = color & 0xFF;
+                    for (int sx = 0; sx < scale; sx++) {
+                        spi.transfer(hi);
+                        spi.transfer(lo);
+                    }
+                }
+            }
+        }
+        cs.high();
+    }
+
+    /** Draws a sprite filling transparent pixels (index 0) with a background color. */
+    public void drawSpriteWithBg(
+            int startX,
+            int startY,
+            int spriteWidth,
+            int spriteHeight,
+            int scale,
+            boolean flipX,
+            byte[] spriteData,
+            int[] palette,
+            int bgColor) {
+        int scaledW = spriteWidth * scale;
+        int scaledH = spriteHeight * scale;
+
+        int bgHi = (bgColor >> 8) & 0xFF;
+        int bgLo = bgColor & 0xFF;
+
+        cs.low();
+        setWindow(startX, startY, startX + scaledW - 1, startY + scaledH - 1);
+        for (int row = 0; row < spriteHeight; row++) {
+            int rowOffset = row * spriteWidth;
+            for (int sy = 0; sy < scale; sy++) {
+                for (int col = 0; col < spriteWidth; col++) {
+                    int srcCol = flipX ? (spriteWidth - 1 - col) : col;
+                    int colorIdx = spriteData[rowOffset + srcCol] & 0xFF;
+                    int hi;
+                    int lo;
+                    if (colorIdx == 0) {
+                        hi = bgHi;
+                        lo = bgLo;
+                    } else {
+                        int color = palette[colorIdx];
+                        hi = (color >> 8) & 0xFF;
+                        lo = color & 0xFF;
+                    }
+                    for (int sx = 0; sx < scale; sx++) {
+                        spi.transfer(hi);
+                        spi.transfer(lo);
+                    }
+                }
+            }
+        }
+        cs.high();
+    }
+
+    /** Draws a sprite skipping transparent pixels (index 0) via horizontal spans. */
+    public void drawSpriteTransparent(
+            int startX,
+            int startY,
+            int spriteWidth,
+            int spriteHeight,
+            int scale,
+            boolean flipX,
+            byte[] spriteData,
+            int[] palette) {
+        for (int row = 0; row < spriteHeight; row++) {
+            int rowOffset = row * spriteWidth;
+            int col = 0;
+            while (col < spriteWidth) {
+                int srcCol = flipX ? (spriteWidth - 1 - col) : col;
+                int colorIndex = spriteData[rowOffset + srcCol] & 0xFF;
+                if (colorIndex == 0) {
+                    col++;
+                    continue;
+                }
+                int spanStart = col;
+                while (col < spriteWidth) {
+                    int sc = flipX ? (spriteWidth - 1 - col) : col;
+                    if ((spriteData[rowOffset + sc] & 0xFF) == 0) {
+                        break;
+                    }
+                    col++;
+                }
+                int spanLen = col - spanStart;
+
+                int x0 = startX + spanStart * scale;
+                int y0 = startY + row * scale;
+                int x1 = x0 + spanLen * scale - 1;
+                int y1 = y0 + scale - 1;
+
+                cs.low();
+                setWindow(x0, y0, x1, y1);
+                for (int sy = 0; sy < scale; sy++) {
+                    for (int c = spanStart; c < col; c++) {
+                        int sc = flipX ? (spriteWidth - 1 - c) : c;
+                        int color = palette[spriteData[rowOffset + sc] & 0xFF];
+                        int hi = (color >> 8) & 0xFF;
+                        int lo = color & 0xFF;
+                        for (int sx = 0; sx < scale; sx++) {
+                            spi.transfer(hi);
+                            spi.transfer(lo);
+                        }
+                    }
+                }
+                cs.high();
+            }
+        }
+    }
+
+    /**
+     * Draws a span-encoded sprite with pure transparency.
+     * Only opaque pixel spans are transmitted, preserving the background.
+     */
+    public void drawSpanSprite(
+            int startX,
+            int startY,
+            int spriteWidth,
+            int scale,
+            boolean flipX,
+            byte[] data,
+            int offset,
+            int[] palette) {
+        int numSpans = ((data[offset] & 0xFF) << 8) | (data[offset + 1] & 0xFF);
+        int ptr = offset + 2;
+
+        for (int i = 0; i < numSpans; i++) {
+            int row = data[ptr++] & 0xFF;
+            int col = data[ptr++] & 0xFF;
+            int flagLen = data[ptr++] & 0xFF;
+            boolean isRepeat = (flagLen & 0x80) != 0;
+            int spanLen = flagLen & 0x7F;
+
+            int drawCol = flipX ? (spriteWidth - col - spanLen) : col;
+            int x0 = startX + drawCol * scale;
+            int y0 = startY + row * scale;
+            int spanWidthPx = spanLen * scale;
+            int x1 = x0 + spanWidthPx - 1;
+            int y1 = y0 + scale - 1;
+
+            if (x0 < 0 || x1 >= WIDTH || y0 < 0 || y1 >= HEIGHT) {
+                if (isRepeat) {
+                    ptr++;
+                } else {
+                    ptr += spanLen;
+                }
+                continue;
+            }
+
+            cs.low();
+            setWindow(x0, y0, x1, y1);
+
+            if (isRepeat) {
+                int colorIdx = data[ptr++] & 0xFF;
+                int color = palette[colorIdx];
+                int hi = (color >> 8) & 0xFF;
+                int lo = color & 0xFF;
+                int totalPixels = spanWidthPx * scale;
+                for (int p = 0; p < totalPixels; p++) {
+                    spi.transfer(hi);
+                    spi.transfer(lo);
+                }
+            } else {
+                int dataStart = ptr;
+                ptr += spanLen;
+                for (int sy = 0; sy < scale; sy++) {
+                    for (int c = 0; c < spanLen; c++) {
+                        int srcCol = flipX ? (spanLen - 1 - c) : c;
+                        int colorIdx = data[dataStart + srcCol] & 0xFF;
+                        int color = palette[colorIdx];
+                        int hi = (color >> 8) & 0xFF;
+                        int lo = color & 0xFF;
+                        for (int sx = 0; sx < scale; sx++) {
+                            spi.transfer(hi);
+                            spi.transfer(lo);
+                        }
+                    }
+                }
+            }
+            cs.high();
+        }
+    }
+
+    /**
+     * Draws a high-level Sprite with transparency using a Palette.
+     */
+    public void drawSprite(
+            Sprite sprite,
+            int x,
+            int y,
+            int scale,
+            boolean flipX,
+            Palette palette) {
+        if (sprite == null || sprite.getData() == null || palette == null) {
+            return;
+        }
+        drawSpanSprite(x, y, sprite.getWidth(), scale, flipX, sprite.getData(), 0, palette);
+    }
+
+    /**
+     * Draws a high-level Sprite (unflipped) with transparency using a Palette.
+     */
+    public void drawSprite(
+            Sprite sprite,
+            int x,
+            int y,
+            int scale,
+            Palette palette) {
+        drawSprite(sprite, x, y, scale, false, palette);
+    }
+
+    /**
+     * Draws a span-encoded sprite with pure transparency using a Palette.
+     */
+    public void drawSpanSprite(
+            int startX,
+            int startY,
+            int spriteWidth,
+            int scale,
+            boolean flipX,
+            byte[] data,
+            int offset,
+            Palette palette) {
+        if (palette == null) {
+            return;
+        }
+        drawSpanSprite(startX, startY, spriteWidth, scale, flipX, data, offset, palette.getColors());
+    }
+
+    /**
+     * Blits a 2D composite buffer to the display scaled in a single SPI transaction.
+     * Overwrites all pixels in the destination window with zero flicker.
+     */
+    public void drawBuffer(
+            int startX,
+            int startY,
+            int bufferWidth,
+            int bufferHeight,
+            int scale,
+            byte[] buffer,
+            Palette palette) {
+        if (buffer == null || palette == null) {
+            return;
+        }
+        int scaledW = bufferWidth * scale;
+        int scaledH = bufferHeight * scale;
+        int x1 = startX + scaledW - 1;
+        int y1 = startY + scaledH - 1;
+
+        if (startX < 0 || x1 >= WIDTH || startY < 0 || y1 >= HEIGHT) {
+            return;
+        }
+
+        cs.low();
+        setWindow(startX, startY, x1, y1);
+        int[] colors = palette.getColors();
+
+        for (int row = 0; row < bufferHeight; row++) {
+            int rowOffset = row * bufferWidth;
+            for (int sy = 0; sy < scale; sy++) {
+                for (int col = 0; col < bufferWidth; col++) {
+                    int colorIdx = buffer[rowOffset + col] & 0xFF;
+                    int color = (colorIdx >= 0 && colorIdx < colors.length) ? colors[colorIdx] : 0;
                     int hi = (color >> 8) & 0xFF;
                     int lo = color & 0xFF;
                     for (int sx = 0; sx < scale; sx++) {

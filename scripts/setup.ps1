@@ -51,7 +51,8 @@ if (-not $cliCmd) {
 }
 arduino-cli core update-index
 arduino-cli core install arduino:renesas_uno
-Write-Host "Arduino CLI and Renesas UNO core ready." -ForegroundColor Green
+arduino-cli lib install SdFat
+Write-Host "Arduino CLI, Renesas UNO core, and SdFat library ready." -ForegroundColor Green
 
 # 4. Build JUno core modules into local Maven cache
 Write-Host "[4/4] Building JUno dependencies into local ~/.m2 repository..." -ForegroundColor Yellow
